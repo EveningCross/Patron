@@ -1,23 +1,30 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.UI;
+using System;
 
-public class scene : MonoBehaviour {
+public class scene : MonoBehaviour
+{
 
     public Camera camera;
     public GameObject city;
     public GameObject field;
     public GameObject cursor;
+    public InputField daysInput;
 
     private int total_days = 0;
     private int day = 1;
     private int month = 1;
     private int year = 0;
 
-    private GameObject[,] tiles = new GameObject[10,10];
+    int days_to_advance = 0;
+
+    private GameObject[,] tiles = new GameObject[10, 10];
     private GameObject[] cities = new GameObject[1];
     private GameObject pointer;
-	// Use this for initialization
-	void Start () {
+    // Use this for initialization
+    void Start()
+    {
         pointer = Instantiate(cursor, new Vector3(0.5F, 0.5F, 0), Quaternion.identity) as GameObject;
         for (int i = 0; i < 10; i++)
         {
@@ -26,14 +33,15 @@ public class scene : MonoBehaviour {
                 tiles[i, j] = Instantiate(field, new Vector3(i + 0.5F, j + 0.5F, 1), Quaternion.identity) as GameObject;
             }
         }
-        
+
         cities[0] = Instantiate(city, new Vector3(5.5F, 5.5F, 0), Quaternion.identity) as GameObject;
         cities[0].GetComponent<city>().setLocation(5, 5);
         cities[0].GetComponent<city>().setTileReferenece(tiles);
     }
-	
-	// Update is called once per frame
-	void Update () {
+
+    // Update is called once per frame
+    void Update()
+    {
         mouseActions();
         cities[0].GetComponent<city>().manualUpdate(total_days);
     }
@@ -62,9 +70,16 @@ public class scene : MonoBehaviour {
             print("Pressed middle click.");
     }
 
-    void updateTime()
+    public void daysToAdvance(string days)
     {
-        total_days++;
+        Int32.TryParse(days, out days_to_advance);
+        Debug.Log(days_to_advance);
+    }
+
+    public void updateTime()
+    {
+        Debug.Log(days_to_advance);
+        total_days += days_to_advance;
     }
 
     public int getDay()
@@ -82,18 +97,5 @@ public class scene : MonoBehaviour {
         return year;
     }
 
-    void OnGUI()
-    {
-        if (GUI.Button(new Rect(10, 300, 150, 50), "1 day"))
-        {
-            updateTime();
-        }
-        if (GUI.Button(new Rect(10, 350, 150, 50), "30 days"))
-        {
-            for (int i = 0; i < 30; i++)
-            {
-                updateTime();
-            }
-        }
-    }
+
 }

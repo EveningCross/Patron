@@ -12,14 +12,17 @@ public class city : MonoBehaviour {
 
     private int x = 0;
     private int y = 0;
-    private int pop_cap = 100000;
-    private float growth_rate = 0.0F;
 
-    private int labor_pool = 0;
+    private float wealth_tax = .05F;
+    private int government_treasury = 10000;
+
+
+    static int number_of_professions = 4;
 
     private int unemployed_index = 0;
     private int wheat_farmer_index = 1;
     private int baker_index = 2;
+    private int pastry_chef_index = 3;
 
 
     /*
@@ -30,6 +33,8 @@ public class city : MonoBehaviour {
 
     private struct job
     {
+        //label
+        public string title;
         //population
         public int workers;
         //money
@@ -56,6 +61,8 @@ public class city : MonoBehaviour {
     //these are market stockpiles, not personal belongings
     private struct item
     {
+        //label
+        public string title;
         // amount on the market for purchase
         public int stock;
         // the current market value
@@ -74,11 +81,11 @@ public class city : MonoBehaviour {
         public int job_index;
     }
 
-    static int number_of_professions = 3;
+
 
     private job[] jobs = new job[number_of_professions];
     private int[] payment = new int[number_of_professions];
-    private item[] food = new item[1];
+    private item[] food = new item[2];
     private item[] goods = new item[1];
 
 
@@ -87,11 +94,11 @@ public class city : MonoBehaviour {
 
 
     void Start () {
-        growth_rate = 0.03F;
 
         // unemployment pool
         jobs[unemployed_index] = new job()
         {
+            title = "unemployed",
             workers = 0,
             wealth = 0,
             food = 100,
@@ -108,6 +115,7 @@ public class city : MonoBehaviour {
 
         // wheat farmer
         jobs[wheat_farmer_index] = new job() {
+            title = "wheat farmer",
             workers = 100,
             wealth = 10000,
             food = 100,
@@ -123,6 +131,7 @@ public class city : MonoBehaviour {
 
         // bakers
         jobs[baker_index] = new job() {
+            title = "baker",
             workers = 100,
             wealth = 10000,
             food = 100,
@@ -136,12 +145,31 @@ public class city : MonoBehaviour {
             production_item3 = 0,
             index = baker_index };
 
+        // pastry chef
+        jobs[pastry_chef_index] = new job()
+        {
+            title = "pastry chef",
+            workers = 0,
+            wealth = 0,
+            food = 0,
+            efficiency = 1F,
+            happiness = .5F,
+            production_index1 = 0,
+            production_index2 = -1,
+            production_index3 = -1,
+            production_item1 = 0,
+            production_item2 = 0,
+            production_item3 = 0,
+            index = pastry_chef_index
+        };
+
 
 
         Array.Sort(jobs, (a, b) => a.index.CompareTo(b.index));
 
         //bread
         food[0] = new item() {
+            title = "bread",
             stock = 0,
             price = 10,
             sold = 0,
@@ -149,8 +177,21 @@ public class city : MonoBehaviour {
             decay = 1,
             job_index = baker_index };
 
+        //cake
+        food[1] = new item()
+        {
+            title = "cake",
+            stock = 0,
+            price = 10,
+            sold = 0,
+            produced = 0,
+            decay = 1,
+            job_index = pastry_chef_index
+        };
+
         //wheat
         goods[0] = new item() {
+            title = "wheat",
             stock = 0,
             price = 5,
             sold = 0,
@@ -169,8 +210,9 @@ public class city : MonoBehaviour {
 
         for (int i = 0; i < elapsed_time; i++)
         {
- 
 
+            taxation();
+            governmentSpending();
             //generate raw resources from the land
             gatherResources();
             //sort the jobs from richest to poorest so they rich spend money first
@@ -212,39 +254,46 @@ public class city : MonoBehaviour {
     {
         tiles = tile_reference;
     }	
+
     public void setLocation(int x_coord, int y_coord)
     {
         x = x_coord;
         y = y_coord;
     }
     
-
+    //perform all production and gathering actions
     private void gatherResources()
     {
         growWheat();
         bakeBread();
+        bakeCake();
     }
 
     private void growWheat()
     {
-        goods[0].produced = tiles[x, y].GetComponent<Tile>().work_fields(0, jobs[1].workers, 0);
+        goods[0].produced = tiles[x, y].GetComponent<Tile>().work_fields(0, jobs[wheat_farmer_index].workers, 0);
         goods[0].stock += goods[0].produced;
     }
 
     private void bakeBread()
     {
-        if (jobs[2].workers < jobs[2].production_item1)
+        if (jobs[baker_index].workers < jobs[baker_index].production_item1)
         {
-            jobs[2].production_item1 -= (jobs[2].workers);
-            food[0].stock += (int) ((jobs[2].workers) * jobs[2].efficiency);
-            food[0].produced = (int)((jobs[2].workers) * jobs[2].efficiency);
+            jobs[baker_index].production_item1 -= (jobs[baker_index].workers);
+            food[0].stock += (int) ((jobs[baker_index].workers) * jobs[baker_index].efficiency);
+            food[0].produced = (int)((jobs[baker_index].workers) * jobs[baker_index].efficiency);
         }
         else
         {
-            food[0].stock += (int) (jobs[2].production_item1 * jobs[2].efficiency);
-            food[0].produced = (int)(jobs[2].production_item1 * jobs[2].efficiency);
-            jobs[2].production_item1 = 0;
+            food[0].stock += (int) (jobs[baker_index].production_item1 * jobs[baker_index].efficiency);
+            food[0].produced = (int)(jobs[baker_index].production_item1 * jobs[baker_index].efficiency);
+            jobs[baker_index].production_item1 = 0;
         }
+    }
+
+    private void bakeCake()
+    {
+
     }
 
     private void purchaseFood()
@@ -368,11 +417,11 @@ public class city : MonoBehaviour {
         for (int i = 1; i < jobs.Length; i++)
         {
             int people_quitting = (int)(jobs[i].workers * (1-jobs[i].happiness));
-            int wealth_leaving = (int)(jobs[i].wealth * (1-jobs[i].happiness));
+            //int wealth_leaving = (int)(jobs[i].wealth * (1-jobs[i].happiness)) / 10;
             jobs[i].workers -= people_quitting;
-            jobs[i].wealth -= wealth_leaving;
+            //jobs[i].wealth -= wealth_leaving;
             jobs[0].workers += people_quitting;
-            jobs[0].wealth += wealth_leaving;
+            //jobs[0].wealth += wealth_leaving;
         }
     }
 
@@ -392,34 +441,67 @@ public class city : MonoBehaviour {
         }
     }
 
+    private void taxation()
+    {
+        for (int i = 0; i < jobs.Length; i++)
+        {
+            int tax = (int) (jobs[i].wealth * wealth_tax);
+            jobs[i].wealth -= tax;
+            government_treasury += tax;
+        }
+    }
+
+    private void governmentSpending()
+    {
+        // experimental distribute treasury to all professions
+        int distribution = government_treasury / jobs.Length;
+        for (int i = 0; i < jobs.Length; i++)
+        {
+            jobs[i].wealth += distribution;
+            government_treasury -= distribution;
+        }
+    }
+
     void OnGUI()
     {
         int space = 25;
         GUI.Label(new Rect(10, space, 200, 20),  "days:             " + day_text);
         space += 15;
-        GUI.Label(new Rect(10, space, 200, 20),  "wheat farmers:    " + jobs[1].workers);
-        space += 15;
-        GUI.Label(new Rect(10, space, 200, 20),  "wheat wealth:     " + jobs[1].wealth);
-        space += 15;
-        GUI.Label(new Rect(10, space, 200, 20),  "wheat:            " + goods[0].stock);
-        space += 15;
-        GUI.Label(new Rect(10, space, 200, 20),  "wheat price:      " + goods[0].price);
-        space += 15;
-        GUI.Label(new Rect(10, space, 200, 20), "wheat produced:   " + goods[0].produced);
-        space += 15;
-        GUI.Label(new Rect(10, space, 200, 20), "bakers:           " + jobs[2].workers);
-        space += 15;
-        GUI.Label(new Rect(10, space, 200, 20), "bakers wealth:    " + jobs[2].wealth);
-        space += 15;
-        GUI.Label(new Rect(10, space, 200, 20), "bread:            " + food[0].stock);
-        space += 15;
-        GUI.Label(new Rect(10, space, 200, 20), "bread price:      " + food[0].price);
-        space += 15;
-        GUI.Label(new Rect(10, space, 200, 20), "bread produced:   " + food[0].produced);
-        space += 15;
-        GUI.Label(new Rect(10, space, 200, 20), "wheat stock:      " + jobs[2].production_item1);
-        space += 15;
-        GUI.Label(new Rect(10, space, 200, 20), "unemployed:       " + jobs[0].workers);
+        GUI.Label(new Rect(10, space, 200, 20),  "treasury:         " + government_treasury);
+        for (int i = 0; i < jobs.Length; i++)
+        {
+            space += 15;
+            GUI.Label(new Rect(10, space, 200, 20), jobs[i].title);
+            space += 15;
+            GUI.Label(new Rect(10, space, 200, 20), "workers: " + jobs[i].workers);
+            space += 15;
+            GUI.Label(new Rect(10, space, 200, 20), "wealth: " + jobs[i].wealth);
+            space += 15;
+            GUI.Label(new Rect(10, space, 200, 20), "food: " + jobs[i].food);
+            space += 15;
+        }
+        
+        for(int i = 0; i < goods.Length; i++)
+        {
+            space += 15;
+            GUI.Label(new Rect(10, space, 200, 20), goods[i].title);
+            space += 15;
+            GUI.Label(new Rect(10, space, 200, 20), "stock: " + goods[i].stock);
+            space += 15;
+            GUI.Label(new Rect(10, space, 200, 20), "price: " + goods[i].price);
+            space += 15;
+        }
+
+        for (int i = 0; i < food.Length; i++)
+        {
+            space += 15;
+            GUI.Label(new Rect(10, space, 200, 20), food[i].title);
+            space += 15;
+            GUI.Label(new Rect(10, space, 200, 20), "stock: " + food[i].stock);
+            space += 15;
+            GUI.Label(new Rect(10, space, 200, 20), "price: " + food[i].price);
+            space += 15;
+        }
         //if (GUI.Button(new Rect(10, 20, 150, 100), "I am a button"))
         //    print("You clicked the button!");
     }
